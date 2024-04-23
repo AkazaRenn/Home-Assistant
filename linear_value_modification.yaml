@@ -1,5 +1,5 @@
 blueprint:
-  name: linear_value_modification
+  name: Linear Value Modification
   description: Linearly modify the value of an input_number over time based on a schedule entity.
   domain: automation
   input:
