@@ -14,8 +14,7 @@ blueprint:
       description: The schedule entity that defines the time period for the value modification.
       selector:
         entity:
-          domain: automation
-          device_class: schedule
+          domain: schedule
     modification_type:
       name: Modification Type
       description: Choose whether to reduce or increase the value.
