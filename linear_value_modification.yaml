@@ -1,4 +1,4 @@
-blueprint1:
+blueprint:
   name: Linear Value Modification
   description: Linearly modify the value of an input_number over time based on a schedule entity.
   domain: automation
