@@ -33,12 +33,10 @@ trigger:
   platform: time_pattern
   minutes: "/1"
   seconds: 0
-
-condition:
-  - condition: template
-    value_template: "{{ now().timestamp() >= state_attr('automation.target_schedule', 'start_time') | int }}"
-  - condition: template
-    value_template: "{{ now().timestamp() < state_attr('automation.target_schedule', 'end_time') | int }}"
+  condition:
+    - condition: state
+      entity_id: !input 'target_schedule'
+      state: "on"
 
 action:
   - variables:
