@@ -58,3 +58,10 @@ action:
       - condition: state
         entity_id: !input "target_schedule"
         state: "off"
+      - condition: template
+        value_template: >
+          {% if modification_type == 'reduce' %}
+            {{ state_attr(input_number.target_input_number, 'value') == state_attr(input_number.target_input_number, 'min') }}
+          {% else %}
+            {{ state_attr(input_number.target_input_number, 'value') == state_attr(input_number.target_input_number, 'max') }}
+          {% endif %}
