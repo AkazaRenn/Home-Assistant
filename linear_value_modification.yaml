@@ -29,20 +29,21 @@ blueprint:
 
 mode: single
 
-variables:
-  max_value: !input 'target_input_number.attributes.max'
-  min_value: !input 'target_input_number.attributes.min'
-
 trigger:
   platform: time_pattern
   minutes: "/1"
+  seconds: 0
 
 condition:
   - condition: template
     value_template: "{{ now().timestamp() >= state_attr('automation.target_schedule', 'start_time') | int }}"
+  - condition: template
+    value_template: "{{ now().timestamp() < state_attr('automation.target_schedule', 'end_time') | int }}"
 
 action:
   - variables:
+      max_value: "{{ state_attr(input_number.target_input_number, 'max') }}"
+      min_value: "{{ state_attr(input_number.target_input_number, 'min') }}"
       time_passed: "{{ (now().timestamp() - state_attr('automation.target_schedule', 'start_time')) / 60 }}"  # Calculate time passed in minutes
       duration: "{{ state_attr('automation.target_schedule', 'end_time') | int - state_attr('automation.target_schedule', 'start_time') | int }}"
       modification_type: "{{ modification_type }}"
