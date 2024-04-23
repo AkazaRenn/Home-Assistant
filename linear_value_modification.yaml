@@ -1,0 +1,64 @@
+blueprint:
+  name: linear_value_modification
+  description: Linearly modify the value of an input_number over time based on a schedule entity.
+  domain: automation
+  input:
+    target_input_number:
+      name: Target Input Number
+      description: The input_number entity whose value you want to modify.
+      selector:
+        entity:
+          domain: input_number
+    target_schedule:
+      name: Target Schedule
+      description: The schedule entity that defines the time period for the value modification.
+      selector:
+        entity:
+          domain: automation
+          device_class: schedule
+    modification_type:
+      name: Modification Type
+      description: Choose whether to reduce or increase the value.
+      default: reduce
+      selector:
+        select:
+          options:
+            - reduce
+            - increase
+  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/linear_value_modification.yaml
+
+mode: single
+
+variables:
+  max_value: !input 'target_input_number.attributes.max'
+  min_value: !input 'target_input_number.attributes.min'
+
+trigger:
+  platform: time_pattern
+  minutes: "/1"
+
+condition:
+  - condition: template
+    value_template: "{{ now().timestamp() >= state_attr('automation.target_schedule', 'start_time') | int }}"
+
+action:
+  - variables:
+      time_passed: "{{ (now().timestamp() - state_attr('automation.target_schedule', 'start_time')) / 60 }}"  # Calculate time passed in minutes
+      duration: "{{ state_attr('automation.target_schedule', 'end_time') | int - state_attr('automation.target_schedule', 'start_time') | int }}"
+      modification_type: "{{ modification_type }}"
+      reduction_step: "{{ (max_value - min_value) / duration }}"  # Calculate modification step size
+      target_value: >-
+        {% if modification_type == 'reduce' %}
+          {{ max(max_value - (time_passed * reduction_step), min_value) }}  # Calculate target value for reduction
+        {% else %}
+          {{ min(min_value + (time_passed * reduction_step), max_value) }}  # Calculate target value for increase
+        {% endif %}
+  - condition: template
+    value_template: "{{ modification_type == 'reduce' and target_value < state_attr('input_number.target_input_number', 'value') }}"
+  - condition: template
+    value_template: "{{ modification_type == 'increase' and target_value > state_attr('input_number.target_input_number', 'value') }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.target_input_number
+    data:
+      value: "{{ target_value }}"
