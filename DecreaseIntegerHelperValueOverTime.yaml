@@ -30,10 +30,16 @@ blueprint:
           max: 100
           step: 1
           mode: slider
+    start_time:
+      name: Start Time
+      description: The time of day when the automation should start.
+      default: "00:00:00"
+      selector:
+        time:
 
 trigger:
-  platform: time_pattern
-  minutes: "/1"
+  platform: time
+  at: !input start_time
 
 action:
   service: input_number.set_value
