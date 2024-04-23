@@ -14,7 +14,8 @@ blueprint:
       description: The schedule entity that defines the time period for the value modification.
       selector:
         entity:
-          domain: schedule
+          domain: automation
+          device_class: schedule
     modification_type:
       name: Modification Type
       description: Choose whether to reduce or increase the value.
@@ -26,32 +27,45 @@ blueprint:
             - increase
   source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/linear_value_modification.yaml
 
-mode: single
+mode: restart
 
 trigger:
   platform: state
   entity_id: !input 'target_schedule'
   to: 'on'
 
-variables:
-  max_value: "{{ state_attr(input_number.target_input_number, 'max') }}"
-  min_value: "{{ state_attr(input_number.target_input_number, 'min') }}"
-  duration: "{{ state_attr('automation.target_schedule', 'end_time') | int - state_attr('automation.target_schedule', 'start_time') | int }}"
-  reduction_step: "{{ (max_value - min_value) / duration }}"  # Calculate modification step size
-
 action:
-  - while:
-      condition: state
-      entity_id: !input 'target_schedule'
-      state: 'on'
-    variables:
-      current_value: "{{ state_attr(input_number.target_input_number, 'value') }}"
-      time_passed: "{{ (now().timestamp() - state_attr('automation.target_schedule', 'start_time')) / 60 }}"  # Calculate time passed in minutes
-      target_value: "{{ max(current_value - (time_passed * reduction_step), min_value) }}"  # Calculate target value for reduction
-    condition: "{{ target_value < current_value }}"
-    - service: input_number.set_value
-      target:
-        entity_id: input_number.target_input_number
-      data:
-        value: "{{ target_value }}"
-    - delay: '00:01:00'  # Delay for 1 minute before next iteration
+  - service: script.turn_on
+    target:
+      entity_id: script.modify_input_number
+    data:
+      variables:
+        target_input_number: !input 'target_input_number'
+        target_schedule: !input 'target_schedule'
+        modification_type: !input 'modification_type'
+
+script:
+  modify_input_number:
+    sequence:
+      - variables:
+          max_value: "{{ state_attr(target_input_number, 'max') }}"
+          min_value: "{{ state_attr(target_input_number, 'min') }}"
+          reduction_step: "{{ (max_value - min_value) / (state_attr(target_schedule, 'end_time') | int - state_attr(target_schedule, 'start_time') | int) }}"  # Calculate modification step size
+          current_value: "{{ state_attr(target_input_number, 'value') }}"
+      - while:
+          condition: "{{ is_state(target_schedule, 'on') }}"
+          sequence:
+            - variables:
+                time_passed: "{{ (now().timestamp() - state_attr(target_schedule, 'start_time')) / 60 }}"  # Calculate time passed in minutes
+                target_value: "{{ max(current_value - (time_passed * reduction_step), min_value) }}"  # Calculate target value for reduction
+            - condition: template
+              value_template: "{{ modification_type == 'reduce' and target_value < current_value }}"
+            - condition: template
+              value_template: "{{ modification_type == 'increase' and target_value > current_value }}"
+            - service: input_number.set_value
+              target:
+                entity_id: !input 'target_input_number'
+              data:
+                value: "{{ target_value }}"
+            - delay:
+                seconds: 60
