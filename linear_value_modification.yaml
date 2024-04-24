@@ -48,9 +48,9 @@ trigger:
 action:
   - repeat:
       while:
-        - condition: state
-          entity_id: !input target_schedule
-          state: "on"
+        # - condition: state
+        #   entity_id: !input target_schedule
+        #   state: "on"
         - condition: template
           value_template: >
             {% if input_modification_type == 'decrease' %}
