@@ -14,7 +14,8 @@ blueprint:
       description: The schedule entity that defines the time period for the value modification.
       selector:
         entity:
-          domain: schedule
+          domain: binary_sensor
+          integration: tod
     modification_type:
       name: Modification Type
       description: Choose whether to reduce or increase the value.
@@ -28,40 +29,58 @@ blueprint:
 
 mode: single
 
+variables:
+  input_target_input_number: !input target_input_number
+  input_target_schedule: !input target_schedule
+  input_modification_type: !input modification_type
+  max_value: "{{ state_attr(input_target_input_number, 'max') }}"
+  min_value: "{{ state_attr(input_target_input_number, 'min') }}"
+  start_time: "{{ as_timestamp(state_attr(input_target_schedule, 'before')) }}"
+  end_time: "{{ as_timestamp(state_attr(input_target_schedule, 'after')) }}"
+  duration: "{{ (start_time - end_time) / 60 }}"
+  update_step: "{{ (max_value - min_value) / duration }}" # Calculate modification step size
+
 trigger:
   platform: state
-  entity_id: !input "target_schedule"
+  entity_id: !input target_schedule
   to: "on"
 
-variables:
-  max_value: "{{ state_attr(input_number.target_input_number, 'max') }}"
-  min_value: "{{ state_attr(input_number.target_input_number, 'min') }}"
-  duration: "{{ state_attr('automation.target_schedule', 'end_time') | int - state_attr('automation.target_schedule', 'start_time') | int }}"
-  reduction_step: "{{ (max_value - min_value) / duration }}" # Calculate modification step size
-
 action:
-  repeat:
-    sequence:
-      - variables:
-          current_value: "{{ state_attr(input_number.target_input_number, 'value') }}"
-          time_passed: "{{ (now().timestamp() - state_attr('automation.target_schedule', 'start_time')) / 60 }}" # Calculate time passed in minutes
-          target_value: "{{ max(current_value - (time_passed * reduction_step), min_value) }}" # Calculate target value for reduction
-      - condition: "{{ target_value < current_value }}"
-      - service: input_number.set_value
-        target:
-          entity_id: input_number.target_input_number
-        data:
-          value: "{{ target_value }}"
-      - delay:
-          minutes: 1 # Delay for 1 minute before next iteration
-    until:
-      - condition: state
-        entity_id: !input "target_schedule"
-        state: "off"
-      - condition: template
-        value_template: >
-          {% if modification_type == 'reduce' %}
-            {{ state_attr(input_number.target_input_number, 'value') == state_attr(input_number.target_input_number, 'min') }}
-          {% else %}
-            {{ state_attr(input_number.target_input_number, 'value') == state_attr(input_number.target_input_number, 'max') }}
-          {% endif %}
+  - repeat:
+      while:
+        - condition: state
+          entity_id: !input target_schedule
+          state: "on"
+        - condition: template
+          value_template: >
+            {% if input_modification_type == 'reduce' %}
+              {{ (states(input_target_input_number) | float) > min_value }}
+            {% else %}
+              {{ (states(input_target_input_number) | float) < max_value }}
+            {% endif %}
+      sequence:
+        - variables:
+            current_value: "{{ states(input_target_input_number) }}"
+            time_passed: "{{ max((now().timestamp() - end_time) / 60, 0) }}" # Calculate time passed in minutes
+            target_value: >
+              {% if input_modification_type == 'reduce' %}
+                {{ max(current_value - (time_passed * update_step), min_value) }}
+              {% else %}
+                {{ min(current_value + (time_passed * update_step), max_value) }}
+              {% endif %}
+        - if:
+            - condition: template
+              value_template: >
+                {% if input_modification_type == 'reduce' %}
+                  {{ target_value < current_value }}
+                {% else %}
+                  {{ target_value > current_value }}
+                {% endif %}
+          then:
+            - service: input_number.set_value
+              target:
+                entity_id: "{{ input_target_input_number }}"
+              data:
+                value: "{{ target_value }}"
+        - delay:
+            minutes: 1 # Delay for 1 minute before next iteration
