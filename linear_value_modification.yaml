@@ -38,7 +38,7 @@ variables:
   start_time: "{{ as_timestamp(state_attr(input_target_schedule, 'before')) }}"
   end_time: "{{ as_timestamp(state_attr(input_target_schedule, 'after')) }}"
   duration: "{{ (start_time - end_time) / 60 }}"
-  update_step: "{{ (max_value - min_value) / duration }}" # Calculate modification step size
+  update_step: "{{ (max_value - min_value) / (duration - 1) }}" # One iteration of grace period to make sure to reach the end
 
 trigger:
   platform: state
@@ -48,9 +48,9 @@ trigger:
 action:
   - repeat:
       while:
-        # - condition: state
-        #   entity_id: !input target_schedule
-        #   state: "on"
+        - condition: state
+          entity_id: !input target_schedule
+          state: "on"
         - condition: template
           value_template: >
             {% if input_modification_type == 'decrease' %}
