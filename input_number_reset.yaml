@@ -1,0 +1,47 @@
+blueprint:
+  name: Input Number Reset
+  description: Reset the input_number entity's value.
+  domain: automation
+  input:
+    target_time:
+      name: Target Time
+      description: The time when this automation will be triggered.
+      selector:
+        time: {}
+    target_input_number:
+      name: Target Input Number
+      description: The input_number entity whose value you want to modify.
+      selector:
+        entity:
+          domain: input_number
+    reset_position:
+      name: Reset Position
+      description: Choose the position where the input will be reset to, ranging from 0% to 100%.
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.001
+  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/input_number_reset.yaml
+
+mode: single
+
+variables:
+  input_target_time: !input target_time
+  input_target_input_number: !input target_input_number
+  input_reset_position: !input reset_position
+  max_value: "{{ state_attr(input_target_input_number, 'max') }}"
+  min_value: "{{ state_attr(input_target_input_number, 'min') }}"
+  target_value: "{{ (input_reset_position * (max_value - min_value)) + min_value }}"
+
+trigger:
+  platform: time
+  at: !input target_time
+
+action:
+  - service: input_number.set_value
+    target:
+      entity_id: "{{ input_target_input_number }}"
+    data:
+      value: "{{ target_value }}"
