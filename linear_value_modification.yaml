@@ -64,9 +64,9 @@ action:
             time_passed: "{{ max((now().timestamp() - end_time) / 60, 0) }}" # Calculate time passed in minutes
             target_value: >
               {% if input_modification_type == 'decrease' %}
-                {{ max(current_value - (time_passed * update_step), min_value) }}
+                {{ max(max_value - (time_passed * update_step), min_value) }}
               {% else %}
-                {{ min(current_value + (time_passed * update_step), max_value) }}
+                {{ min(min_value + (time_passed * update_step), max_value) }}
               {% endif %}
         - if:
             - condition: template
