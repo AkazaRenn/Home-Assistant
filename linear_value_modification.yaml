@@ -42,14 +42,14 @@ variables:
 
 trigger:
   platform: state
-  entity_id: !input target_schedule
+  entity_id: input_target_schedule
   to: "on"
 
 action:
   - repeat:
       while:
         - condition: state
-          entity_id: !input target_schedule
+          entity_id: input_target_schedule
           state: "on"
         - condition: template
           value_template: >
