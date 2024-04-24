@@ -18,12 +18,12 @@ blueprint:
           integration: tod
     modification_type:
       name: Modification Type
-      description: Choose whether to reduce or increase the value.
-      default: reduce
+      description: Choose whether to decrease or increase the value.
+      default: decrease
       selector:
         select:
           options:
-            - reduce
+            - decrease
             - increase
   source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/linear_value_modification.yaml
 
@@ -53,7 +53,7 @@ action:
           state: "on"
         - condition: template
           value_template: >
-            {% if input_modification_type == 'reduce' %}
+            {% if input_modification_type == 'decrease' %}
               {{ (states(input_target_input_number) | float) > min_value }}
             {% else %}
               {{ (states(input_target_input_number) | float) < max_value }}
@@ -63,7 +63,7 @@ action:
             current_value: "{{ states(input_target_input_number) }}"
             time_passed: "{{ max((now().timestamp() - end_time) / 60, 0) }}" # Calculate time passed in minutes
             target_value: >
-              {% if input_modification_type == 'reduce' %}
+              {% if input_modification_type == 'decrease' %}
                 {{ max(current_value - (time_passed * update_step), min_value) }}
               {% else %}
                 {{ min(current_value + (time_passed * update_step), max_value) }}
@@ -71,7 +71,7 @@ action:
         - if:
             - condition: template
               value_template: >
-                {% if input_modification_type == 'reduce' %}
+                {% if input_modification_type == 'decrease' %}
                   {{ target_value < current_value }}
                 {% else %}
                   {{ target_value > current_value }}
