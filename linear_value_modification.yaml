@@ -2,6 +2,7 @@ blueprint:
   name: Linear Value Modification
   description: Linearly modify the value of an input_number over time based on a schedule entity.
   domain: automation
+  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/linear_value_modification.yaml
   input:
     target_input_number:
       name: Target Input Number
@@ -25,7 +26,6 @@ blueprint:
           options:
             - decrease
             - increase
-  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/linear_value_modification.yaml
 
 mode: single
 
@@ -38,7 +38,7 @@ variables:
   start_time: "{{ as_timestamp(state_attr(input_target_schedule, 'before')) }}"
   end_time: "{{ as_timestamp(state_attr(input_target_schedule, 'after')) }}"
   duration: "{{ (start_time - end_time) / 60 }}"
-  update_step: "{{ (max_value - min_value) / (duration - 1) }}" # One iteration of grace period to make sure to reach the end
+  update_step: "{{ (max_value - min_value) / duration }}" # Calculate modification step size
 
 trigger:
   platform: state
@@ -48,9 +48,9 @@ trigger:
 action:
   - repeat:
       while:
-        - condition: state
-          entity_id: !input target_schedule
-          state: "on"
+        # - condition: state
+        #   entity_id: !input target_schedule
+        #   state: "on"
         - condition: template
           value_template: >
             {% if input_modification_type == 'decrease' %}
@@ -61,7 +61,7 @@ action:
       sequence:
         - variables:
             current_value: "{{ states(input_target_input_number) }}"
-            time_passed: "{{ max((now().timestamp() - end_time) / 60, 0) }}" # Calculate time passed in minutes
+            time_passed: "{{ max(int(now().timestamp() - end_time) / 60, 0) }}" # Calculate time passed in minutes
             target_value: >
               {% if input_modification_type == 'decrease' %}
                 {{ max(max_value - (time_passed * update_step), min_value) }}

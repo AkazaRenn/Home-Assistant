@@ -1,0 +1,61 @@
+blueprint:
+  name: Occupancy-activated Light
+  description: Turn on a light when motion is detected.
+  domain: automation
+  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/occupancy_activated_light.yaml
+  input:
+    occupancy_entity:
+      name: Occupancy Sensor
+      selector:
+        entity:
+          filter:
+            device_class: occupancy
+            domain: binary_sensor
+    light_target:
+      name: Light
+      selector:
+        target:
+          entity:
+            domain: light
+    boolean_confirmer:
+      name: Boolean Confirmer
+      description: The boolean value to check before turning on the light
+      selector:
+        entity:
+          domain: input_boolean
+    boolean_confirmer_expected_state:
+      name: Boolean Confirmer Expected State
+      selector:
+        select:
+          options:
+            - "on"
+            - "off"
+
+mode: single
+
+trigger:
+  platform: state
+  entity_id: !input occupancy_entity
+  from: "off"
+  to: "on"
+
+condition:
+  - condition: state
+    entity_id: !input boolean_confirmer
+    state: !input boolean_confirmer_expected_state
+
+variables:
+  input_occupancy_entity: !input occupancy_entity
+  input_light_target: !input light_target
+
+action:
+  - service: light.turn_on
+    target: "{{ input_light_target }}"
+  - alias: "Wait until the occupancy clearance from device"
+    wait_for_trigger:
+      platform: state
+      entity_id: !input occupancy_entity
+      from: "on"
+      to: "off"
+  - service: light.turn_off
+    target: "{{ input_light_target }}"

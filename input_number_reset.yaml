@@ -2,6 +2,7 @@ blueprint:
   name: Input Number Reset
   description: Reset the input_number entity's value.
   domain: automation
+  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/input_number_reset.yaml
   input:
     trigger:
       name: Triggers
@@ -23,7 +24,6 @@ blueprint:
           min: 0
           max: 1
           step: 0.001
-  source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/input_number_reset.yaml
 
 mode: single
 
