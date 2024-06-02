@@ -30,6 +30,13 @@ blueprint:
           options:
             - "on"
             - "off"
+    brightness_target:
+      name: Brightness Value
+      description: The number entity to set the brightness to
+      default: null
+      selector:
+        entity:
+          domain: input_number
 
 mode: single
 
@@ -47,10 +54,19 @@ condition:
 variables:
   input_occupancy_entity: !input occupancy_entity
   input_light_target: !input light_target
+  input_brightness_target: !input brightness_target
 
 action:
-  - service: light.turn_on
-    target: "{{ input_light_target }}"
+  - choose:
+      - conditions: "{{ input_brightness_target != None }}"
+        sequence:
+          - service: light.turn_on
+            data:
+              brightness_pct: "{{ states(input_brightness_target) | float }}"
+            target: "{{ input_light_target }}"
+    default:
+      - service: light.turn_on
+        target: "{{ input_light_target }}"
   - alias: "Wait until the occupancy clearance from device"
     wait_for_trigger:
       platform: state
