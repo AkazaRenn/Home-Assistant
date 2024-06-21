@@ -16,6 +16,15 @@ blueprint:
         target:
           entity:
             domain: light
+    no_motion_wait_sec:
+      name: Wait time
+      description: Time to leave the light on after last motion is detected.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
     boolean_confirmer:
       name: Boolean Confirmer
       description: The boolean value to check before turning on the light
@@ -36,8 +45,15 @@ blueprint:
       selector:
         entity:
           domain: input_number
+    automation_during_occupancy:
+      name: Automation During Occupancy
+      description: The automation to enable during the occupancy.
+      default: null
+      selector:
+        entity:
+          domain: automation
 
-mode: single
+mode: restart
 
 trigger:
   platform: state
@@ -51,9 +67,9 @@ condition:
     state: !input boolean_confirmer_expected_state
 
 variables:
-  input_occupancy_entity: !input occupancy_entity
   input_light_target: !input light_target
   input_brightness_target: !input brightness_target
+  input_automation_during_occupancy: !input automation_during_occupancy
 
 action:
   - choose:
@@ -66,11 +82,24 @@ action:
     default:
       - service: light.turn_on
         target: "{{ input_light_target }}"
+  - choose:
+      - conditions: "{{ input_automation_during_occupancy != None }}"
+        sequence:
+          - service: automation.turn_on
+            target:
+              entity_id: "{{ input_automation_during_occupancy }}"
   - alias: "Wait until the occupancy clearance from device"
     wait_for_trigger:
       platform: state
       entity_id: !input occupancy_entity
       from: "on"
       to: "off"
+  - delay: "{{ input_no_motion_wait_sec }}"
+  - choose:
+      - conditions: "{{ input_automation_during_occupancy != None }}"
+        sequence:
+          - service: automation.turn_off
+            target:
+              entity_id: "{{ input_automation_during_occupancy }}"
   - service: light.turn_off
     target: "{{ input_light_target }}"
