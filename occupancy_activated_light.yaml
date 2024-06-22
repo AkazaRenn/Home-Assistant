@@ -69,6 +69,7 @@ condition:
 variables:
   input_light_target: !input light_target
   input_brightness_target: !input brightness_target
+  input_no_motion_wait_sec: !input no_motion_wait_sec
   input_automation_during_occupancy: !input automation_during_occupancy
 
 action:
@@ -101,5 +102,10 @@ action:
           - service: automation.turn_off
             target:
               entity_id: "{{ input_automation_during_occupancy }}"
+  - service: light.turn_off
+    target: "{{ input_light_target }}"
+  - alias: "Make sure the light really is turned off"
+    delay:
+      seconds: 10
   - service: light.turn_off
     target: "{{ input_light_target }}"
