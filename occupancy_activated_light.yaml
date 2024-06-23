@@ -58,7 +58,6 @@ mode: restart
 trigger:
   platform: state
   entity_id: !input occupancy_entity
-  from: "off"
   to: "on"
 
 condition:
@@ -68,6 +67,7 @@ condition:
 
 variables:
   input_light_target: !input light_target
+  input_light_target.off: "{% if input_light_target.device_id is defined %} {{ not is_state ( device_entities ( input_light_target.device_id ) | first , 'on' ) }} {% elif input_light_target.entity_id is defined %} {{ not is_state ( input_light_target.entity_id , 'on' ) }} {% else %} {{ expand (  area_entities ( input_light_target.area_id ) ) | selectattr ( 'domain' , 'eq' , 'light' ) | selectattr ( 'state' , 'eq' , 'on' ) | list | count == 0 }} {% endif %}"
   input_brightness_target: !input brightness_target
   input_no_motion_wait_sec: !input no_motion_wait_sec
   input_automation_during_occupancy: !input automation_during_occupancy
@@ -102,10 +102,12 @@ action:
           - service: automation.turn_off
             target:
               entity_id: "{{ input_automation_during_occupancy }}"
-  - service: light.turn_off
-    target: "{{ input_light_target }}"
-  - alias: "Make sure the light really is turned off"
-    delay:
-      seconds: 10
-  - service: light.turn_off
-    target: "{{ input_light_target }}"
+  - repeat:
+      sequence:
+        - service: light.turn_off
+          target: "{{ input_light_target }}"
+        - delay:
+            seconds: 10
+      until:
+        - condition:
+            - "{{ input_light_target.off }}"
