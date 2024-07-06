@@ -67,14 +67,6 @@ condition:
 
 variables:
   input_light_target: !input light_target
-  input_light_target_off: >
-    {% if input_light_target.device_id is defined %}
-      {{ is_state(device_entities(input_light_target.device_id) | first , 'off') }}
-    {% elif input_light_target.entity_id is defined %}
-      {{ is_state(input_light_target.entity_id , 'off') }}
-    {% else %}
-      {{ expand(area_entities( input_light_target.area_id)) | selectattr('domain' , 'eq' , 'light') | rejectattr('state' , 'eq' , 'off') | list | count == 0 }}
-    {% endif %}
   input_brightness_target: !input brightness_target
   input_no_motion_wait_sec: !input no_motion_wait_sec
   input_automation_during_occupancy: !input automation_during_occupancy
@@ -116,5 +108,12 @@ action:
         - delay:
             seconds: 10
       until:
-        - condition:
-            - "{{ input_light_target_off }}"
+        - condition: template
+          value_template: >
+            {% if input_light_target.device_id is defined %}
+              {{ is_state(device_entities(input_light_target.device_id) | first , 'off') }}
+            {% elif input_light_target.entity_id is defined %}
+              {{ is_state(input_light_target.entity_id , 'off') }}
+            {% else %}
+              {{ expand(area_entities( input_light_target.area_id)) | selectattr('domain' , 'eq' , 'light') | rejectattr('state' , 'eq' , 'off') | list | count == 0 }}
+            {% endif %}
