@@ -106,7 +106,7 @@ action:
         - service: light.turn_off
           target: "{{ input_light_target }}"
         - delay:
-            seconds: 10
+            seconds: 30
       until:
         - condition: template
           value_template: >
