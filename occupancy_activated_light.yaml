@@ -4,75 +4,94 @@ blueprint:
   domain: automation
   source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/occupancy_activated_light.yaml
   input:
-    occupancy_entity:
-      name: Occupancy Sensor
-      selector:
-        entity:
-          filter:
-            domain: binary_sensor
-    light_target:
-      name: Light
-      selector:
-        target:
-          entity:
-            domain: light
-    no_occupancy_wait_sec_min:
-      name: Min Wait time
-      description: Minimum time to leave the light on after last occupancy is detected.
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 3600
-          unit_of_measurement: seconds
-          mode: box
-    no_occupancy_wait_sec_max:
-      name: Max Wait time
-      description: Maximum time to leave the light on after last occupancy is detected.
-      default: 300
-      selector:
-        number:
-          min: 0
-          max: 3600
-          unit_of_measurement: seconds
-          mode: box
-    up_time_to_no_occupancy_wait_ratio:
-      name: Up Time to Wait Time Ratio
-      description: Light on time = occupancy time * this ratio
-      default: 1
-      selector:
-        number:
-          min: 0
-          max: 100
-          mode: box
-          step: 0.01
-    boolean_confirmer:
-      name: Boolean Confirmer
-      description: The boolean value to check before turning on the light
-      selector:
-        entity:
-          domain: input_boolean
-    boolean_confirmer_expected_state:
-      name: Boolean Confirmer Expected State
-      selector:
-        select:
-          options:
-            - "on"
-            - "off"
-    brightness_target:
-      name: Brightness Value
-      description: The number entity to set the brightness to
-      default: null
-      selector:
-        entity:
-          domain: input_number
-    automation_during_occupancy:
-      name: Automation During Occupancy
-      description: The automation to enable during the occupancy.
-      default: null
-      selector:
-        entity:
-          domain: automation
+    basic_section:
+      name: Basic
+      input:
+        occupancy_entity:
+          name: Occupancy Sensor
+          selector:
+            entity:
+              filter:
+                domain: binary_sensor
+        light_target:
+          name: Light
+          selector:
+            target:
+              entity:
+                domain: light
+    wait_time_section:
+      name: Wait Time
+      input:
+        no_occupancy_wait_sec_min:
+          name: Min Wait time
+          description: Minimum time to leave the light on after last occupancy is detected.
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 3600
+              unit_of_measurement: seconds
+              mode: box
+        no_occupancy_wait_sec_max:
+          name: Max Wait time
+          description: Maximum time to leave the light on after last occupancy is detected.
+          default: 300
+          selector:
+            number:
+              min: 0
+              max: 3600
+              unit_of_measurement: seconds
+              mode: box
+        up_time_to_no_occupancy_wait_ratio:
+          name: Up Time to Wait Time Ratio
+          description: Light on time = occupancy time * this ratio
+          default: 1
+          selector:
+            number:
+              min: 0
+              max: 100
+              mode: box
+              step: 0.01
+        wait_time_compensation:
+          name: Wait Time Compensation
+          description: Compensation time for the sensor to detect the absence
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 3600
+              unit_of_measurement: seconds
+              mode: box
+    advanced_section:
+      name: Advanced
+      input:
+        boolean_confirmer:
+          name: Boolean Confirmer
+          description: The boolean value to check before turning on the light
+          selector:
+            entity:
+              domain: input_boolean
+        boolean_confirmer_expected_state:
+          name: Boolean Confirmer Expected State
+          selector:
+            select:
+              options:
+                - "on"
+                - "off"
+        brightness_target:
+          name: Brightness Value
+          description: The number entity to set the brightness to
+          default: null
+          selector:
+            entity:
+              domain: input_number
+        automation_during_occupancy:
+          name: Automation During Occupancy
+          description: The automation to enable during the occupancy.
+          default: null
+          selector:
+            entity:
+              domain: automation
 
 mode: restart
 
@@ -92,6 +111,7 @@ variables:
   input_no_occupancy_wait_sec_min: !input no_occupancy_wait_sec_min
   input_no_occupancy_wait_sec_max: !input no_occupancy_wait_sec_max
   input_up_time_to_no_occupancy_wait_ratio: !input up_time_to_no_occupancy_wait_ratio
+  input_wait_time_compensation: !input wait_time_compensation
   input_automation_during_occupancy: !input automation_during_occupancy
 
   temp_occupancy_start_sec: "{{ as_timestamp(now()) | int }}"
@@ -121,7 +141,7 @@ action:
       entity_id: !input occupancy_entity
       to: "off"
   - variables:
-      temp_no_occupancy_wait_sec: "{{ input_up_time_to_no_occupancy_wait_ratio * min(temp_no_occupancy_wait_sec_max, max(temp_no_occupancy_wait_sec_min, (as_timestamp(now()) | int) - temp_occupancy_start_sec)) }}"
+      temp_no_occupancy_wait_sec: "{{ min(temp_no_occupancy_wait_sec_max, max(temp_no_occupancy_wait_sec_min, input_up_time_to_no_occupancy_wait_ratio * max(0, (as_timestamp(now()) | int) - temp_occupancy_start_sec - input_wait_time_compensation))) }}"
   - delay: "{{ temp_no_occupancy_wait_sec }}"
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
