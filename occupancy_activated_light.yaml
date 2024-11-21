@@ -1,6 +1,6 @@
 blueprint:
   name: Occupancy-activated Light
-  description: Turn on a light when motion is detected.
+  description: Turn on a light when occupancy is detected.
   domain: automation
   source_url: https://github.com/AkazaRenn/Home-Assistant/blob/main/occupancy_activated_light.yaml
   input:
@@ -16,15 +16,36 @@ blueprint:
         target:
           entity:
             domain: light
-    no_motion_wait_sec:
-      name: Wait time
-      description: Time to leave the light on after last motion is detected.
+    no_occupancy_wait_sec_min:
+      name: Min Wait time
+      description: Minimum time to leave the light on after last occupancy is detected.
       default: 0
       selector:
         number:
           min: 0
           max: 3600
           unit_of_measurement: seconds
+          mode: box
+    no_occupancy_wait_sec_max:
+      name: Max Wait time
+      description: Maximum time to leave the light on after last occupancy is detected.
+      default: 300
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: seconds
+          mode: box
+    up_time_to_no_occupancy_wait_ratio:
+      name: Up Time to Wait Time Ratio
+      description: Light on time = occupancy time * this ratio
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: box
+          step: 0.01
     boolean_confirmer:
       name: Boolean Confirmer
       description: The boolean value to check before turning on the light
@@ -68,8 +89,14 @@ condition:
 variables:
   input_light_target: !input light_target
   input_brightness_target: !input brightness_target
-  input_no_motion_wait_sec: !input no_motion_wait_sec
+  input_no_occupancy_wait_sec_min: !input no_occupancy_wait_sec_min
+  input_no_occupancy_wait_sec_max: !input no_occupancy_wait_sec_max
+  input_up_time_to_no_occupancy_wait_ratio: !input up_time_to_no_occupancy_wait_ratio
   input_automation_during_occupancy: !input automation_during_occupancy
+
+  temp_occupancy_start_sec: "{{ as_timestamp(now()) | int }}"
+  temp_no_occupancy_wait_sec_min: "{{ min(input_no_occupancy_wait_sec_min, input_no_occupancy_wait_sec_max) }}"
+  temp_no_occupancy_wait_sec_max: "{{ max(input_no_occupancy_wait_sec_min, input_no_occupancy_wait_sec_max) }}"
 
 action:
   - choose:
@@ -92,9 +119,10 @@ action:
     wait_for_trigger:
       platform: state
       entity_id: !input occupancy_entity
-      from: "on"
       to: "off"
-  - delay: "{{ input_no_motion_wait_sec }}"
+  - variables:
+      temp_no_occupancy_wait_sec: "{{ input_up_time_to_no_occupancy_wait_ratio * min(temp_no_occupancy_wait_sec_max, max(temp_no_occupancy_wait_sec_min, (as_timestamp(now()) | int) - temp_occupancy_start_sec)) }}"
+  - delay: "{{ temp_no_occupancy_wait_sec }}"
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
         sequence:
