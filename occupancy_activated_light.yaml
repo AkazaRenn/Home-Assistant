@@ -135,6 +135,9 @@ action:
           - service: automation.turn_on
             target:
               entity_id: "{{ input_automation_during_occupancy }}"
+          - service: automation.trigger
+            target:
+              entity_id: "{{ input_automation_during_occupancy }}"
   - alias: "Wait until the occupancy clearance from device"
     wait_for_trigger:
       platform: state
