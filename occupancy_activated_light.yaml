@@ -85,6 +85,13 @@ blueprint:
           selector:
             entity:
               domain: input_number
+        color_temperature_target:
+          name: Color Temperature Value
+          description: The number entity to set the color temperature to
+          default: null
+          selector:
+            entity:
+              domain: input_number
         automation_during_occupancy:
           name: Automation During Occupancy
           description: The automation to enable during the occupancy.
@@ -108,27 +115,35 @@ condition:
 variables:
   input_light_target: !input light_target
   input_brightness_target: !input brightness_target
+  input_color_temperature_target: !input color_temperature_target
   input_no_occupancy_wait_sec_min: !input no_occupancy_wait_sec_min
   input_no_occupancy_wait_sec_max: !input no_occupancy_wait_sec_max
   input_up_time_to_no_occupancy_wait_ratio: !input up_time_to_no_occupancy_wait_ratio
   input_wait_time_compensation: !input wait_time_compensation
   input_automation_during_occupancy: !input automation_during_occupancy
 
+  temp_brightness_percent: >
+    {% if input_brightness_target %}
+      {{ states(input_brightness_target) | float }}
+    {% else %}
+      100
+    {% endif %}
+  temp_color_temperature_kelvin: >
+    {% if input_color_temperature_target %}
+      {{ states(input_color_temperature_target) | int }}
+    {% else %}
+      6500
+    {% endif %}
   temp_occupancy_start_sec: "{{ as_timestamp(now()) | int }}"
   temp_no_occupancy_wait_sec_min: "{{ min(input_no_occupancy_wait_sec_min, input_no_occupancy_wait_sec_max) }}"
   temp_no_occupancy_wait_sec_max: "{{ max(input_no_occupancy_wait_sec_min, input_no_occupancy_wait_sec_max) }}"
 
 action:
-  - choose:
-      - conditions: "{{ input_brightness_target != None }}"
-        sequence:
-          - service: light.turn_on
-            data:
-              brightness_pct: "{{ states(input_brightness_target) | float }}"
-            target: "{{ input_light_target }}"
-    default:
-      - service: light.turn_on
-        target: "{{ input_light_target }}"
+  - service: light.turn_on
+    data:
+      brightness_pct: "{{ temp_brightness_percent }}"
+      kelvin: "{{ temp_color_temperature_kelvin }}"
+    target: "{{ input_light_target }}"
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
         sequence:
