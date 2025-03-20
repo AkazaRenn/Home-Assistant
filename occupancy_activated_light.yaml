@@ -139,11 +139,14 @@ variables:
   temp_no_occupancy_wait_sec_max: "{{ max(input_no_occupancy_wait_sec_min, input_no_occupancy_wait_sec_max) }}"
 
 action:
-  - service: light.turn_on
-    data:
-      brightness_pct: "{{ temp_brightness_percent }}"
-      kelvin: "{{ temp_color_temperature_kelvin }}"
-    target: "{{ input_light_target }}"
+  - choose:
+      - conditions: "{{ temp_brightness_percent > 0 }}"
+        sequence:
+        - service: light.turn_on
+          target: "{{ input_light_target }}"
+          data:
+            brightness_pct: "{{ temp_brightness_percent }}"
+            kelvin: "{{ temp_color_temperature_kelvin }}"
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
         sequence:
