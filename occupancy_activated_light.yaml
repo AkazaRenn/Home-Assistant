@@ -171,12 +171,7 @@ action:
             target:
               entity_id: "{{ input_automation_during_occupancy }}"
   - repeat:
-      sequence:
-        - service: light.turn_off
-          target: "{{ input_light_target }}"
-        - delay:
-            seconds: 30
-      until:
+      while:
         - condition: template
           value_template: >
             {% if input_light_target.device_id is defined %}
@@ -186,3 +181,8 @@ action:
             {% else %}
               {{ expand(area_entities( input_light_target.area_id)) | selectattr('domain' , 'eq' , 'light') | rejectattr('state' , 'eq' , 'off') | list | count == 0 }}
             {% endif %}
+      sequence:
+        - service: light.turn_off
+          target: "{{ input_light_target }}"
+        - delay:
+            seconds: 30
