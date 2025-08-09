@@ -142,11 +142,11 @@ action:
   - choose:
       - conditions: "{{ temp_brightness_percent > 0 }}"
         sequence:
-        - service: light.turn_on
-          target: "{{ input_light_target }}"
-          data:
-            brightness_pct: "{{ temp_brightness_percent }}"
-            kelvin: "{{ temp_color_temperature_kelvin }}"
+          - service: light.turn_on
+            target: "{{ input_light_target }}"
+            data:
+              brightness_pct: "{{ temp_brightness_percent }}"
+              kelvin: "{{ temp_color_temperature_kelvin }}"
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
         sequence:
@@ -171,7 +171,7 @@ action:
             target:
               entity_id: "{{ input_automation_during_occupancy }}"
   - repeat:
-      while:
+      until:
         - condition: template
           value_template: >
             {% if input_light_target.device_id is defined %}
@@ -185,4 +185,4 @@ action:
         - service: light.turn_off
           target: "{{ input_light_target }}"
         - delay:
-            seconds: 30
+            seconds: 5
