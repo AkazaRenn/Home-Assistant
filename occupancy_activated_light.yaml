@@ -84,14 +84,18 @@ blueprint:
           default: null
           selector:
             entity:
-              domain: input_number
+              domain:
+                - sensor
+                - input_number
         color_temperature_target:
           name: Color Temperature Value
           description: The number entity to set the color temperature to
           default: null
           selector:
             entity:
-              domain: input_number
+              domain:
+                - sensor
+                - input_number
         automation_during_occupancy:
           name: Automation During Occupancy
           description: The automation to enable during the occupancy.
