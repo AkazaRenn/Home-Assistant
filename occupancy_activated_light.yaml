@@ -183,10 +183,10 @@ action:
             {% elif input_light_target.entity_id is defined %}
               {{ is_state(input_light_target.entity_id , 'off') }}
             {% else %}
-              {{ expand(area_entities( input_light_target.area_id)) | selectattr('domain' , 'eq' , 'light') | rejectattr('state' , 'eq' , 'off') | list | count > 0 }}
+              {{ expand(area_entities( input_light_target.area_id)) | selectattr('domain' , 'eq' , 'light') | rejectattr('state' , 'eq' , 'off') | list | count == 0 }}
             {% endif %}
       sequence:
         - service: light.turn_off
           target: "{{ input_light_target }}"
         - delay:
-            seconds: 5
+            seconds: 10
