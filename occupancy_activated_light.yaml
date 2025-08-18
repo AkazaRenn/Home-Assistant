@@ -150,7 +150,8 @@ action:
             target: "{{ input_light_target }}"
             data:
               brightness_pct: "{{ temp_brightness_percent }}"
-              kelvin: "{{ temp_color_temperature_kelvin }}"
+              color_temp_kelvin: "{{ temp_color_temperature_kelvin }}"
+              transition: 1
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
         sequence:
@@ -189,4 +190,4 @@ action:
         - service: light.turn_off
           target: "{{ input_light_target }}"
         - delay:
-            seconds: 5
+            seconds: 30
