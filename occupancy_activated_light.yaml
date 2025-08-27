@@ -107,14 +107,16 @@ blueprint:
 mode: restart
 
 trigger:
-  platform: state
-  entity_id: !input occupancy_entity
-  to: "on"
+  - platform: state
+    entity_id: !input occupancy_entity
+    to: "on"
+  - platform: state
+    entity_id: !input boolean_confirmer
 
 condition:
   - condition: state
-    entity_id: !input boolean_confirmer
-    state: !input boolean_confirmer_expected_state
+    entity_id: !input occupancy_entity
+    state: "on"
 
 variables:
   input_light_target: !input light_target
@@ -144,31 +146,37 @@ variables:
 
 action:
   - choose:
-      - conditions: "{{ temp_brightness_percent > 0 }}"
+      - conditions:
+          - condition: state
+            entity_id: !input boolean_confirmer
+            state: !input boolean_confirmer_expected_state
         sequence:
-          - service: light.turn_on
-            target: "{{ input_light_target }}"
-            data:
-              brightness_pct: "{{ temp_brightness_percent }}"
-              color_temp_kelvin: "{{ temp_color_temperature_kelvin }}"
-              transition: 1
-  - choose:
-      - conditions: "{{ input_automation_during_occupancy != None }}"
-        sequence:
-          - service: automation.turn_on
-            target:
-              entity_id: "{{ input_automation_during_occupancy }}"
-          - service: automation.trigger
-            target:
-              entity_id: "{{ input_automation_during_occupancy }}"
-  - alias: "Wait until the occupancy clearance from device"
-    wait_for_trigger:
-      platform: state
-      entity_id: !input occupancy_entity
-      to: "off"
-  - variables:
-      temp_no_occupancy_wait_sec: "{{ min(temp_no_occupancy_wait_sec_max, max(temp_no_occupancy_wait_sec_min, input_up_time_to_no_occupancy_wait_ratio * max(0, (as_timestamp(now()) | int) - temp_occupancy_start_sec - input_wait_time_compensation))) }}"
-  - delay: "{{ temp_no_occupancy_wait_sec }}"
+          - choose:
+              - conditions: "{{ temp_brightness_percent > 0 }}"
+                sequence:
+                  - service: light.turn_on
+                    target: "{{ input_light_target }}"
+                    data:
+                      brightness_pct: "{{ temp_brightness_percent }}"
+                      color_temp_kelvin: "{{ temp_color_temperature_kelvin }}"
+                      transition: 1
+          - choose:
+              - conditions: "{{ input_automation_during_occupancy != None }}"
+                sequence:
+                  - service: automation.turn_on
+                    target:
+                      entity_id: "{{ input_automation_during_occupancy }}"
+                  - service: automation.trigger
+                    target:
+                      entity_id: "{{ input_automation_during_occupancy }}"
+          - alias: "Wait until the occupancy clearance from device"
+            wait_for_trigger:
+              platform: state
+              entity_id: !input occupancy_entity
+              to: "off"
+          - variables:
+              temp_no_occupancy_wait_sec: "{{ min(temp_no_occupancy_wait_sec_max, max(temp_no_occupancy_wait_sec_min, input_up_time_to_no_occupancy_wait_ratio * max(0, (as_timestamp(now()) | int) - temp_occupancy_start_sec - input_wait_time_compensation))) }}"
+          - delay: "{{ temp_no_occupancy_wait_sec }}"
   - choose:
       - conditions: "{{ input_automation_during_occupancy != None }}"
         sequence:
